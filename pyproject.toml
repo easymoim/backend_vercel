@@ -2,13 +2,14 @@
 name = "easymoim-backend"
 version = "1.0.0"
 description = "EasyMoim 백엔드 API"
-requires-python = "==3.9.*"
+requires-python = "==3.11.*"
 dependencies = [
     "fastapi==0.104.1",
     "uvicorn[standard]==0.24.0",
     "python-dotenv==1.0.0",
     "pydantic==2.5.0",
     "pydantic-settings==2.1.0",
+    "pydantic-core==2.14.5",
     "sqlalchemy==2.0.23",
     "alembic==1.12.1",
     "psycopg2-binary==2.9.9",
