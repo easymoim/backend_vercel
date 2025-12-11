@@ -3,8 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from pydantic import BaseSettings
-from urllib.parse import quote_plus, urlparse
-import psycopg
+from urllib.parse import quote_plus
+import ssl
 
 class Settings(BaseSettings):
     """애플리케이션 설정"""
@@ -25,32 +25,29 @@ if not settings.DATABASE_URL:
             "또는 Supabase 대시보드에서 제공하는 전체 DATABASE_URL을 .env 파일에 직접 설정할 수 있습니다."
         )
     encoded_password = quote_plus(settings.DATABASE_PASSWORD)
-    db_url = f"postgresql://postgres:{encoded_password}@db.wxuunspyyvqndpodtesy.supabase.co:5432/postgres"
+    # pg8000 드라이버 사용
+    db_url = f"postgresql+pg8000://postgres:{encoded_password}@db.wxuunspyyvqndpodtesy.supabase.co:5432/postgres"
 else:
     db_url = settings.DATABASE_URL
+    # postgresql:// → postgresql+pg8000://
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+pg8000://", 1)
+    elif db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+pg8000://", 1)
 
-# URL 파싱
-parsed = urlparse(db_url)
-
-# psycopg3 연결 생성 함수 (prepare_threshold=0으로 prepared statements 비활성화)
-def get_connection():
-    conn = psycopg.connect(
-        host=parsed.hostname,
-        port=parsed.port or 5432,
-        user=parsed.username,
-        password=parsed.password,
-        dbname=parsed.path.lstrip('/'),
-        sslmode="require",
-        prepare_threshold=0  # prepared statements 완전 비활성화
-    )
-    return conn
+# SSL 컨텍스트 생성 (Supabase 연결용)
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 # SQLAlchemy 엔진 생성
 engine = create_engine(
-    "postgresql+psycopg://",
-    creator=get_connection,
-    poolclass=NullPool,
-    echo=True,
+    db_url,
+    poolclass=NullPool,  # 서버리스 환경 호환
+    echo=True,  # 개발 모드: SQL 쿼리 로깅
+    connect_args={
+        "ssl_context": ssl_context
+    }
 )
 
 # 세션 팩토리 생성
