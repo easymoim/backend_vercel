@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from urllib.parse import quote_plus
 
 class Settings(BaseSettings):
@@ -50,4 +50,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
